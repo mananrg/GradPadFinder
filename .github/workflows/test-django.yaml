@@ -14,6 +14,30 @@ jobs:
     defaults:
       run:
         working-directory: ./src
+    env:
+      DJANGO_SECRET_KEY: test-key-dvfrwe4wsF#2&&^dsf
+      POSTGRES_DB: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_USER: app
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5434
+    services:
+      postgres_main:
+        image: postgres
+        env:
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_HOST: ${{ env.POSTGRES_HOST }}
+          POSTGRES_PORT: ${{ env.POSTGRES_PORT }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        ports:
+          - 5434:5434
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     strategy:
       max-parallel: 4
       matrix:
@@ -32,3 +56,7 @@ jobs:
       - name: Run Tests
         run: |
           python manage.py test
+
+# act -W .github/workflows/test-django.yaml \
+#   --container-architecture linux/amd64 \
+#   -P ubuntu-latest=catthehacker/ubuntu:act-latest
