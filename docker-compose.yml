@@ -1,0 +1,49 @@
+services:
+  web: 
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: django-k8s:v1
+    env_file:
+      - src/.env
+    ports:
+      - "8001:8000"
+    command: sh -c "chmod +x /app/scripts/migrate.sh && sh /app/scripts/migrate.sh && /app/scripts/entrypoint.sh"
+    volumes:
+    - staticfiles:/app/src/staticfiles
+  postgres_db:
+    image: postgres:16-alpine
+    restart: always
+    command: -p 5434
+    env_file:
+      - src/.env
+    expose:
+      - 5434
+    ports:
+      - "5434:5434"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app -p 5434"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  redis_db:
+    image: redis
+    restart: always
+    expose:
+      - 6388
+    ports:
+      - "6388:6388"
+    volumes:
+      - redis_data:/data
+    entrypoint: redis-server --appendonly yes --port 6380
+
+volumes:
+  staticfiles:
+    external: true
+  postgres_data:
+  redis_data:
