@@ -10,6 +10,9 @@ on:
 jobs:
   docker_build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # Default needed for actions/checkout
+      packages: write # <-- THIS IS THE CRITICAL LINE
     env:
       DJANGO_SECRET_KEY: test-key-dvfrwe4wsF#2&&^dsf
       # 1. Define a consistent local tag based on the commit SHA or a fixed string
