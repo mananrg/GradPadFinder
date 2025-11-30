@@ -29,6 +29,6 @@ jobs:
 
       - name: Tag and Push Docker image
         run: |
-          IMAGE_NAME=ghcr.io/${{ github.repository }}/gradpad-be:latest
+          IMAGE_NAME=ghcr.io/mananrg/gradpadfinder/gradpad-be:latest
           docker tag gradpad-be:$(date +%s) $IMAGE_NAME
           docker push $IMAGE_NAME
