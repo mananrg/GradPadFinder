@@ -1,4 +1,4 @@
-name: Django CI
+name: Test Work
 
 on:
   workflow_call:
@@ -9,7 +9,7 @@ on:
     branches: ["main"]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     defaults:
       run:
