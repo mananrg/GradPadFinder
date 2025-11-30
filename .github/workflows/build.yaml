@@ -10,21 +10,24 @@ on:
 jobs:
   docker_build:
     runs-on: ubuntu-latest
+    # Define permissions to allow pushing to ghcr.io
     permissions:
-      contents: read # Default needed for actions/checkout
-      packages: write # <-- THIS IS THE CRITICAL LINE
+      contents: read
+      packages: write # Crucial for pushing to the Container Registry
+
     env:
       DJANGO_SECRET_KEY: test-key-dvfrwe4wsF#2&&^dsf
-      # 1. Define a consistent local tag based on the commit SHA or a fixed string
+      # 1. Consistent local tag
       LOCAL_IMAGE_TAG: gradpad-be:${{ github.sha }}
-      # 2. Define the final, full tag for the registry
-      FULL_IMAGE_NAME: ghcr.io/mananrg/gradpadfinder/gradpad-be:latest
+      # 2. Base path for the remote registry
+      REMOTE_IMAGE_PATH: ghcr.io/mananrg/gradpadfinder/gradpad-be
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Build the Docker image
-        # Use the consistent tag defined in 'LOCAL_IMAGE_TAG'
+        # Builds the image with the unique SHA tag
         run: docker build . --file Dockerfile --tag ${{ env.LOCAL_IMAGE_TAG }}
 
       - name: Log in to GitHub Container Registry
@@ -36,6 +39,17 @@ jobs:
 
       - name: Tag and Push Docker image
         run: |
-          # The source tag is now the consistent 'LOCAL_IMAGE_TAG'
-          docker tag ${{ env.LOCAL_IMAGE_TAG }} ${{ env.FULL_IMAGE_NAME }}
-          docker push ${{ env.FULL_IMAGE_NAME }}
+          # 1. Tag the image with the permanent, unique SHA tag
+          SHA_TAG=${{ env.REMOTE_IMAGE_PATH }}:${{ github.sha }}
+          docker tag ${{ env.LOCAL_IMAGE_TAG }} $SHA_TAG
+
+          # 2. Tag the image with the rolling 'latest' tag
+          LATEST_TAG=${{ env.REMOTE_IMAGE_PATH }}:latest
+          docker tag ${{ env.LOCAL_IMAGE_TAG }} $LATEST_TAG
+
+          # 3. Push BOTH tags
+          echo "Pushing permanent tag: $SHA_TAG"
+          docker push $SHA_TAG
+
+          echo "Pushing latest tag: $LATEST_TAG"
+          docker push $LATEST_TAG
