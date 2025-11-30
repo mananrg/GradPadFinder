@@ -9,7 +9,7 @@ on:
 
 jobs:
   test_django_job:
-    uses: mananrg/GradPadFinder/actions/workflows/test-django.yaml@main
+    uses: mananrg/GradPadFinder/.github/workflows/test-django.yaml@main
   docker_build:
     runs-on: ubuntu-latest
     needs: [test_django_job]
