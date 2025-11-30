@@ -1,0 +1,19 @@
+name: Build Docker Container
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test_django_job:
+    uses: mananrg/GradPadFinder/actions/workflows/test-django.yaml@main
+  docker_build:
+    runs-on: ubuntu-latest
+    needs: [test_django_job]
+    env:
+      DJANGO_SECRET_KEY: test-key-dvfrwe4wsF#2&&^dsf
+    steps:
+      - uses: actions/checkout@v4
