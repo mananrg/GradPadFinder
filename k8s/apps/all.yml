@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: django
+  template:
+    metadata:
+      labels:
+        app: django
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres-service -p 5434 -U app; do
+                echo "Waiting for postgres..."
+                sleep 2
+              done
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: django-secrets
+                  key: db-password
+        - name: django-migrations
+          image: mananrg291997/django_test:v2
+          command:
+            - sh
+            - -c
+            - "chmod +x /app/scripts/migrate.sh && sh /app/scripts/migrate.sh"
+          envFrom:
+            - configMapRef:
+                name: django-config
+            - secretRef:
+                name: django-secrets
+          volumeMounts:
+            - name: staticfiles
+              mountPath: /app/src/staticfiles
+      containers:
+        - name: django
+          image: mananrg291997/django_test:v2
+          ports:
+            - containerPort: 8000
+          command: ["/app/scripts/entrypoint.sh"]
+          envFrom:
+            - configMapRef:
+                name: django-config
+            - secretRef:
+                name: django-secrets
+          volumeMounts:
+            - name: staticfiles
+              mountPath: /app/src/staticfiles
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: staticfiles
+          persistentVolumeClaim:
+            claimName: staticfiles-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-service
+spec:
+  selector:
+    app: django
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+      nodePort: 30080
+  type: NodePort
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: django-config
+data:
+  # Add your non-sensitive environment variables here
+  DEBUG: "False"
+  ALLOWED_HOSTS: "*"
+  # Add other env vars from your .env file (non-sensitive ones)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: django-secrets
+type: Opaque
+stringData:
+  # Add your sensitive environment variables here
+  SECRET_KEY: "your-secret-key-here"
+  db-password: "your-db-password-here"
+  # Add other sensitive env vars from your .env file
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: staticfiles-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
